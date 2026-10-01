@@ -18,14 +18,39 @@
   const num=id=>Math.max(0,Number($(id).value||0));
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 
+  function normalizePromos(raw){
+    if(Array.isArray(raw)) return raw;
+    if(typeof raw==="string"){try{return JSON.parse(raw)||[];}catch(e){return [];}}
+    return [];
+  }
+  function promoMonthlyCharge(normal,month,promos){
+    const p=promos.find(v=>month>=Number(v.start_month)&&month<Number(v.start_month)+Number(v.duration_months));
+    if(!p) return normal;
+    if(p.type==="percent") return Math.max(0,normal*(1-Number(p.value||0)/100));
+    if(p.type==="fixed") return Math.max(0,Number(p.value||0));
+    return normal;
+  }
+  function promoLabel(p){
+    const end=Number(p.start_month)+Number(p.duration_months)-1;
+    return p.type==="percent"
+      ? `${p.start_month}~${end}개월 ${Number(p.value).toLocaleString("ko-KR")}% 할인`
+      : `${p.start_month}~${end}개월 월 ${money(p.value)}`;
+  }
   const calc=x=>{
-    const totalRent=Number(x.monthly_rent||0)*Number(x.contract_months||0)+Number(x.install_fee||0)+Number(x.initial_cost||0);
-    const dm=Math.min(Number(x.discount_months||0),Number(x.contract_months||0));
+    const normal=Number(x.monthly_rent||0), months=Number(x.contract_months||0);
+    const promos=normalizePromos(x.promotions);
+    let billedRent=0;
+    for(let m=1;m<=months;m++) billedRent+=promoMonthlyCharge(normal,m,promos);
+    const normalRent=normal*months;
+    const promoSaving=Math.max(0,normalRent-billedRent);
+    const totalRent=billedRent+Number(x.install_fee||0)+Number(x.initial_cost||0);
+    const dm=Math.min(Number(x.discount_months||0),months);
     const totalCard=Number(x.card_discount||0)*dm;
-    const totalBenefit=totalCard+Number(x.cashback||0)+Number(x.extra_benefit||0);
-    const netTotal=Math.max(0,totalRent-totalBenefit);
-    const netMonthly=Number(x.contract_months||0)>0?netTotal/Number(x.contract_months):0;
-    return {...x,totalRent,totalCard,totalBenefit,netTotal,netMonthly};
+    const totalBenefit=promoSaving+totalCard+Number(x.cashback||0)+Number(x.extra_benefit||0);
+    const normalTotal=normalRent+Number(x.install_fee||0)+Number(x.initial_cost||0);
+    const netTotal=Math.max(0,normalTotal-totalBenefit);
+    const netMonthly=months>0?netTotal/months:0;
+    return {...x,promotions:promos,promoSaving,totalRent,totalCard,totalBenefit,netTotal,netMonthly};
   };
 
   function setAdminMode(v){
@@ -86,6 +111,7 @@
         <td class="num">${money(x.monthly_rent)}</td>
         <td>${Number(x.contract_months||0)}개월<div class="sub">의무 ${Number(x.mandatory_months||0)}개월</div></td>
         <td>${esc(x.care_service||"-")}<div class="sub">${x.care_cycle?`${x.care_cycle}개월 주기`:""}</div></td>
+        <td>${x.promotions.length ? x.promotions.map(p=>`<div class="promo-chip">${esc(promoLabel(p))}</div>`).join("") : "-"}<div class="sub">${x.promoSaving? `절감 ${money(x.promoSaving)}` : ""}</div></td>
         <td class="num">${money(x.totalCard)}<div class="sub">${esc(x.card_name||"")}</div></td>
         <td class="num">${money(x.cashback)}</td><td class="num">${money(x.totalRent)}</td><td class="num">${money(x.totalBenefit)}</td>
         <td class="num"><strong>${money(x.netTotal)}</strong></td><td class="num"><strong>${money(x.netMonthly)}</strong></td>
@@ -111,8 +137,41 @@
     document.querySelectorAll(".del-btn").forEach(b=>b.addEventListener("click",()=>deleteItem(b.dataset.id)));
   }
 
+  function addPromoRow(p={start_month:1,duration_months:12,type:"percent",value:50}){
+    const row=document.createElement("div"); row.className="promo-row";
+    row.innerHTML=`
+      <label>시작월<input class="promo-start" type="number" min="1" value="${Number(p.start_month||1)}"></label>
+      <label>적용개월<input class="promo-duration" type="number" min="1" value="${Number(p.duration_months||1)}"></label>
+      <label>방식<select class="promo-type"><option value="percent" ${p.type==="percent"?"selected":""}>할인율(%)</option><option value="fixed" ${p.type==="fixed"?"selected":""}>월 청구액</option></select></label>
+      <label>값<input class="promo-value" type="number" min="0" value="${Number(p.value||0)}"></label>
+      <button type="button" class="btn small danger promo-remove">삭제</button>`;
+    row.querySelector(".promo-remove").addEventListener("click",()=>row.remove());
+    $("promoRows").appendChild(row);
+  }
+  function readPromos(){
+    return [...document.querySelectorAll(".promo-row")].map(row=>({
+      start_month:Number(row.querySelector(".promo-start").value||0),
+      duration_months:Number(row.querySelector(".promo-duration").value||0),
+      type:row.querySelector(".promo-type").value,
+      value:Number(row.querySelector(".promo-value").value||0)
+    }));
+  }
+  function validatePromos(promos,contractMonths){
+    const occupied=new Set();
+    for(const p of promos){
+      if(p.start_month<1||p.duration_months<1) return "프로모션 시작월과 적용개월을 확인하세요.";
+      if(p.start_month>contractMonths) return "프로모션 시작월이 총 계약기간을 넘습니다.";
+      if(p.type==="percent"&&(p.value<0||p.value>100)) return "할인율은 0~100%로 입력하세요.";
+      const end=Math.min(contractMonths,p.start_month+p.duration_months-1);
+      for(let m=p.start_month;m<=end;m++){
+        if(occupied.has(m)) return `${m}개월차에 프로모션 구간이 겹칩니다.`;
+        occupied.add(m);
+      }
+    }
+    return "";
+  }
   function openNew(){
-    els.itemForm.reset();$("itemId").value="";$("status").value="관심";
+    els.itemForm.reset();$("itemId").value="";$("status").value="관심";$("promoRows").innerHTML="";
     ["installFee","initialCost","cardDiscount","cashback","extraBenefit"].forEach(id=>$(id).value=0);
     els.itemDialogTitle.textContent="제품 추가";els.itemError.textContent="";els.itemDialog.showModal();
   }
@@ -122,18 +181,22 @@
       monthlyRent:x.monthly_rent||0,mandatoryMonths:x.mandatory_months||0,contractMonths:x.contract_months||60,installFee:x.install_fee||0,initialCost:x.initial_cost||0,
       cardName:x.card_name||"",cardDiscount:x.card_discount||0,discountMonths:x.discount_months||0,cashback:x.cashback||0,extraBenefit:x.extra_benefit||0,
       careCycle:x.care_cycle||0,careService:x.care_service||"",publicMemo:x.public_memo||"",adminMemo:x.admin_memo||""};
-    Object.entries(vals).forEach(([k,v])=>$(k).value=v);els.itemDialogTitle.textContent="제품 수정";els.itemError.textContent="";els.itemDialog.showModal();
+    Object.entries(vals).forEach(([k,v])=>$(k).value=v);
+    $("promoRows").innerHTML="";
+    normalizePromos(x.promotions).forEach(addPromoRow);
+    els.itemDialogTitle.textContent="제품 수정";els.itemError.textContent="";els.itemDialog.showModal();
   }
   function payload(){return{
     category:$("category").value,status:$("status").value,brand:$("brand").value.trim(),product_name:$("productName").value.trim(),size:$("size").value.trim(),
     monthly_rent:num("monthlyRent"),mandatory_months:num("mandatoryMonths"),contract_months:num("contractMonths"),install_fee:num("installFee"),initial_cost:num("initialCost"),
     card_name:$("cardName").value.trim(),card_discount:num("cardDiscount"),discount_months:num("discountMonths"),cashback:num("cashback"),extra_benefit:num("extraBenefit"),
-    care_service:$("careService").value.trim(),care_cycle:num("careCycle"),public_memo:$("publicMemo").value.trim(),admin_memo:$("adminMemo").value.trim()
+    care_service:$("careService").value.trim(),care_cycle:num("careCycle"),promotions:readPromos(),public_memo:$("publicMemo").value.trim(),admin_memo:$("adminMemo").value.trim()
   };}
 
   async function saveItem(e){
     e.preventDefault();if(!isAdmin)return;
     const id=$("itemId").value,p=payload();if(!p.brand||!p.product_name||p.contract_months<1){els.itemError.textContent="브랜드, 제품명, 총 계약기간을 확인하세요.";return;}
+    const promoError=validatePromos(p.promotions,p.contract_months);if(promoError){els.itemError.textContent=promoError;return;}
     const r=id?await client.from("rental_items").update(p).eq("id",id):await client.from("rental_items").insert(p);
     if(r.error){els.itemError.textContent=r.error.message;return;}els.itemDialog.close();await loadItems();
   }
@@ -147,6 +210,7 @@
   }
   async function logout(){if(client)await client.auth.signOut();setAdminMode(false);await loadItems();}
 
+  $("addPromoBtn").addEventListener("click",()=>addPromoRow());
   $("selectAllVisible").addEventListener("change",()=>{
     const visible=filteredItems();
     if($("selectAllVisible").checked) visible.forEach(x=>selectedIds.add(String(x.id)));
