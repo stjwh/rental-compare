@@ -24,6 +24,7 @@ create table if not exists public.rental_items (
   care_cycle integer not null default 0,
   public_memo text,
   admin_memo text,
+  promotions jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -44,6 +45,7 @@ end $$;
 
 alter table public.rental_items add column if not exists public_memo text;
 alter table public.rental_items add column if not exists admin_memo text;
+alter table public.rental_items add column if not exists promotions jsonb not null default '[]'::jsonb;
 
 create table if not exists public.admin_users (
   user_id uuid primary key references auth.users(id) on delete cascade
@@ -131,6 +133,7 @@ select
   extra_benefit,
   care_service,
   care_cycle,
+  promotions,
   public_memo,
   updated_at
 from public.rental_items;
