@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
+  <title>렌탈 비용 비교</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>렌탈 비용 비교</h1>
+      <p>게스트는 조회·비교만, 관리자는 로그인 후 제품을 관리할 수 있습니다.</p>
+    </div>
+    <div class="top-actions">
+      <span id="modeBadge" class="badge">게스트</span>
+      <button id="adminLoginBtn" class="btn secondary">관리자 로그인</button>
+      <button id="logoutBtn" class="btn secondary hidden">로그아웃</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section id="setupWarning" class="warning hidden">
+      <strong>Supabase 연결 설정이 필요합니다.</strong>
+      <span><code>config.js</code>에 Project URL과 anon key를 입력하세요.</span>
+    </section>
+
+    <section class="summary-grid">
+      <article class="summary-card">
+        <span>등록 제품</span>
+        <strong id="kpiCount">0개</strong>
+      </article>
+      <article class="summary-card">
+        <span>최저 실질 월평균</span>
+        <strong id="kpiBestMonthly">-</strong>
+      </article>
+      <article class="summary-card">
+        <span>최저 실질 총비용</span>
+        <strong id="kpiBestTotal">-</strong>
+      </article>
+      <article class="summary-card">
+        <span>최대 총혜택</span>
+        <strong id="kpiBestBenefit">-</strong>
+      </article>
+    </section>
+
+    <section class="toolbar">
+      <div class="filters">
+        <label>
+          구분
+          <select id="filterCategory">
+            <option value="">전체</option>
+            <option>매트리스</option>
+            <option>정수기</option>
+            <option>비데</option>
+            <option>안마의자</option>
+            <option>공기청정기</option>
+            <option>기타</option>
+          </select>
+        </label>
+        <label>
+          상태
+          <select id="filterStatus">
+            <option value="">전체</option>
+            <option>관심</option>
+            <option>상담예정</option>
+            <option>견적받음</option>
+            <option>최종후보</option>
+            <option>계약완료</option>
+            <option>제외</option>
+          </select>
+        </label>
+        <label>
+          검색
+          <input id="searchText" type="search" placeholder="브랜드 / 제품명 / 메모" />
+        </label>
+        <label>
+          정렬
+          <select id="sortBy">
+            <option value="net_monthly">실질 월평균 낮은순</option>
+            <option value="net_total">실질 총비용 낮은순</option>
+            <option value="benefit_desc">총혜택 높은순</option>
+            <option value="monthly">월 렌탈료 낮은순</option>
+            <option value="updated_desc">최근 수정순</option>
+          </select>
+        </label>
+      </div>
+
+      <button id="addItemBtn" class="btn primary hidden">+ 제품 추가</button>
+    </section>
+
+    <section class="table-card">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>상태</th>
+              <th>구분</th>
+              <th>브랜드 / 제품명</th>
+              <th>월 렌탈료</th>
+              <th>기간</th>
+              <th>케어서비스</th>
+              <th>카드 할인</th>
+              <th>캐시백</th>
+              <th>총 렌탈료</th>
+              <th>총 혜택</th>
+              <th>실질 총비용</th>
+              <th>실질 월평균</th>
+              <th id="adminColHead" class="hidden">관리</th>
+            </tr>
+          </thead>
+          <tbody id="rentalRows"></tbody>
+        </table>
+      </div>
+      <div id="emptyState" class="empty">등록된 제품이 없습니다.</div>
+    </section>
+
+    <section class="formula-note">
+      <strong>계산 기준</strong>
+      <p>총 렌탈료 = 월 렌탈료 × 총 계약기간 + 등록/설치비 + 기타 초기비용</p>
+      <p>총 혜택 = 월 카드할인 × 할인 적용개월 + 캐시백 + 기타 혜택</p>
+      <p>실질 총비용 = 총 렌탈료 − 총 혜택 / 실질 월평균 = 실질 총비용 ÷ 총 계약기간</p>
+    </section>
+  </main>
+
+  <dialog id="loginDialog">
+    <form id="loginForm" method="dialog" class="dialog-form">
+      <div class="dialog-head">
+        <h2>관리자 로그인</h2>
+        <button type="button" class="icon-btn" data-close="loginDialog" aria-label="닫기">×</button>
+      </div>
+      <label>이메일<input id="loginEmail" type="email" required autocomplete="username" /></label>
+      <label>비밀번호<input id="loginPassword" type="password" required autocomplete="current-password" /></label>
+      <div id="loginError" class="error-text"></div>
+      <div class="dialog-actions">
+        <button type="button" class="btn secondary" data-close="loginDialog">취소</button>
+        <button type="submit" class="btn primary">로그인</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="itemDialog">
+    <form id="itemForm" method="dialog" class="dialog-form wide">
+      <div class="dialog-head">
+        <h2 id="itemDialogTitle">제품 추가</h2>
+        <button type="button" class="icon-btn" data-close="itemDialog" aria-label="닫기">×</button>
+      </div>
+
+      <input id="itemId" type="hidden" />
+
+      <div class="form-grid">
+        <label>구분
+          <select id="category" required>
+            <option>매트리스</option><option>정수기</option><option>비데</option>
+            <option>안마의자</option><option>공기청정기</option><option>기타</option>
+          </select>
+        </label>
+        <label>상태
+          <select id="status" required>
+            <option>관심</option><option>상담예정</option><option>견적받음</option>
+            <option>최종후보</option><option>계약완료</option><option>제외</option>
+          </select>
+        </label>
+        <label>브랜드<input id="brand" required /></label>
+        <label>제품명<input id="productName" required /></label>
+        <label>사이즈/형태<input id="size" placeholder="예: K / LK / 얼음정수기" /></label>
+        <label>월 렌탈료<input id="monthlyRent" type="number" min="0" step="100" required /></label>
+        <label>의무기간(개월)<input id="mandatoryMonths" type="number" min="0" /></label>
+        <label>총 계약기간(개월)<input id="contractMonths" type="number" min="1" required /></label>
+        <label>등록/설치비<input id="installFee" type="number" min="0" value="0" /></label>
+        <label>기타 초기비용<input id="initialCost" type="number" min="0" value="0" /></label>
+        <label>카드명<input id="cardName" /></label>
+        <label>월 카드할인<input id="cardDiscount" type="number" min="0" value="0" /></label>
+        <label>카드할인 적용개월<input id="discountMonths" type="number" min="0" /></label>
+        <label>캐시백<input id="cashback" type="number" min="0" value="0" /></label>
+        <label>기타 혜택<input id="extraBenefit" type="number" min="0" value="0" /></label>
+        <label>케어주기(개월)<input id="careCycle" type="number" min="0" /></label>
+        <label class="span-2">케어서비스<input id="careService" placeholder="예: 4개월 방문, UV살균, 탑퍼교체" /></label>
+        <label class="span-2">메모<textarea id="memo" rows="3" placeholder="견적 출처, 상담 메모 등"></textarea></label>
+      </div>
+
+      <div id="itemError" class="error-text"></div>
+      <div class="dialog-actions">
+        <button type="button" class="btn secondary" data-close="itemDialog">취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
