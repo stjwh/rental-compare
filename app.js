@@ -171,7 +171,7 @@
     $("promoRows").appendChild(row);
   }
   function readPromos(){
-    return [...document.querySelectorAll(".promo-row")].map(row=>({
+    return [...document.querySelectorAll("#promoRows .promo-row")].map(row=>({
       start_month:Number(row.querySelector(".promo-start").value||0),
       duration_months:Number(row.querySelector(".promo-duration").value||0),
       type:row.querySelector(".promo-type").value,
@@ -203,7 +203,7 @@
     $("cardPromoRows").appendChild(row);
   }
   function readCardPromos(){
-    return [...document.querySelectorAll(".card-promo-row")].map(row=>({
+    return [...document.querySelectorAll("#cardPromoRows .card-promo-row")].map(row=>({
       start_month:Number(row.querySelector(".card-promo-start").value||0),
       duration_months:Number(row.querySelector(".card-promo-duration").value||0),
       extra_discount:Number(row.querySelector(".card-promo-extra").value||0)
