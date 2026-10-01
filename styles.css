@@ -69,3 +69,10 @@ table th:nth-child(5),table td:nth-child(5){min-width:max-content}
 .compare-col{width:64px;min-width:64px;text-align:center!important}
 .compare-head{display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;font-size:12px;color:#475467}
 .compare-head input,.compare-check{width:18px;height:18px;min-height:18px;accent-color:var(--accent);cursor:pointer}
+
+.promo-editor{border:1px solid var(--line);border-radius:10px;padding:12px;background:#f8fafc}
+.promo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.promo-head div{display:flex;flex-direction:column;gap:3px}.promo-head span,.promo-help{font-size:12px;color:var(--muted)}
+.promo-rows{display:flex;flex-direction:column;gap:8px}.promo-row{display:grid;grid-template-columns:100px 100px 150px 160px auto;gap:8px;align-items:end}
+.promo-row label{font-size:12px}.promo-chip{display:inline-block;padding:3px 7px;border-radius:999px;background:#eff6ff;color:#1d4ed8;font-size:11px;margin:1px 2px 1px 0}
+@media(max-width:760px){.promo-row{grid-template-columns:1fr 1fr}.promo-row .promo-remove{align-self:end}.promo-head{align-items:flex-start;flex-direction:column}}
