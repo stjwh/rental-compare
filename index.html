@@ -24,7 +24,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div><h1>렌탈 비용 비교</h1><p>게스트는 조회·비교만, 관리자는 로그인 후 제품을 관리할 수 있습니다.</p></div>
+    <div><h1>렌탈 비용 비교</h1><p>게스트는 조회·비교만, 관리자는 로그인 후 제품을 관리할 수 있습니다. <span class="version-mark">v2026.10.01-2</span></p></div>
     <div class="top-actions">
       <span id="modeBadge" class="badge">게스트</span>
       <button id="adminLoginBtn" class="btn secondary">관리자 로그인</button>
@@ -78,6 +78,14 @@
       <label>등록/설치비<input id="installFee" type="number" min="0" value="0" /></label><label>기타 초기비용<input id="initialCost" type="number" min="0" value="0" /></label>
       <label>카드명<input id="cardName" /></label><label>기본 월 카드할인<input id="cardDiscount" type="number" min="0" value="0" /></label>
       <label>기본 카드할인 적용개월<input id="discountMonths" type="number" min="0" /></label><label>캐시백<input id="cashback" type="number" min="0" value="0" /></label>
+      <section class="promo-editor card-promo-editor span-2">
+        <div class="promo-head">
+          <div><strong>카드 할인 프로모션</strong><span>기본 카드 할인에 기간 한정 추가 할인액을 더합니다.</span></div>
+          <button id="addCardPromoBtn" type="button" class="btn small secondary">+ 카드 프로모션 추가</button>
+        </div>
+        <div id="cardPromoRows" class="promo-rows"></div>
+        <div class="promo-help">예: 기본 월 10,000원 할인 + 36개월간 추가 10,000원 → 시작 1 / 적용 36 / 추가 할인 10,000원</div>
+      </section>
       <label>기타 혜택<input id="extraBenefit" type="number" min="0" value="0" /></label><label>케어주기(개월)<input id="careCycle" type="number" min="0" /></label>
       <label class="span-2">케어서비스<input id="careService" placeholder="예: 4개월 방문, UV살균, 탑퍼교체" /></label>
       <section class="promo-editor span-2">
@@ -87,14 +95,6 @@
         </div>
         <div id="promoRows" class="promo-rows"></div>
         <div class="promo-help">예: 1~12개월 50% 할인 → 시작 1 / 적용 12 / 할인율 50% · 1~10개월 월 10,000원 → 시작 1 / 적용 10 / 월 청구액 10,000원</div>
-      </section>
-      <section class="promo-editor card-promo-editor span-2">
-        <div class="promo-head">
-          <div><strong>카드 할인 프로모션</strong><span>기본 카드 할인에 기간 한정 추가 할인액을 더합니다.</span></div>
-          <button id="addCardPromoBtn" type="button" class="btn small secondary">+ 카드 프로모션 추가</button>
-        </div>
-        <div id="cardPromoRows" class="promo-rows"></div>
-        <div class="promo-help">예: 기본 월 10,000원 할인 + 36개월간 추가 10,000원 → 시작 1 / 적용 36 / 추가 할인 10,000원</div>
       </section>
       <label class="span-2">공개 메모<textarea id="publicMemo" rows="2" placeholder="게스트에게 보여도 되는 메모"></textarea></label>
       <label class="span-2">관리자 전용 메모<textarea id="adminMemo" rows="3" placeholder="상담자 정보 등 외부에 공개하면 안 되는 내용"></textarea></label>
