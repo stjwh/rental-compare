@@ -6,7 +6,20 @@
   <meta name="color-scheme" content="light dark" />
   <meta name="referrer" content="no-referrer" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self';" />
-  <title>렌탈 비용 비교</title>
+  <title>가구·가전 렌탈 비용 비교</title>
+  <meta name="description" content="월 렌탈료·카드할인·기간 프로모션·캐시백까지 한눈에 비교하는 가구·가전 렌탈 계산기" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://stjwh.github.io/rental-compare/" />
+  <meta property="og:title" content="가구·가전 렌탈 비용 비교" />
+  <meta property="og:description" content="월 렌탈료 · 카드할인 · 프로모션까지 한눈에 비교" />
+  <meta property="og:image" content="https://stjwh.github.io/rental-compare/og-rental.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="가구·가전 렌탈 비용 비교" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="가구·가전 렌탈 비용 비교" />
+  <meta name="twitter:description" content="월 렌탈료 · 카드할인 · 프로모션까지 한눈에 비교" />
+  <meta name="twitter:image" content="https://stjwh.github.io/rental-compare/og-rental.jpg" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -38,7 +51,7 @@
     <section class="table-card">
       <div class="table-scroll"><table><thead><tr>
         <th class="compare-col"><label class="compare-head"><input id="selectAllVisible" type="checkbox" checked /><span>비교</span></label></th>
-        <th>상태</th><th>구분</th><th>브랜드 / 제품명</th><th>월 렌탈료</th><th>기간</th><th>케어서비스</th><th>카드 할인</th><th>캐시백</th><th>총 렌탈료</th><th>총 혜택</th><th>실질 총비용</th><th>실질 월평균</th><th id="adminColHead" class="hidden">관리</th>
+        <th>상태</th><th>구분</th><th>브랜드 / 제품명</th><th>월 렌탈료</th><th>기간</th><th>케어서비스</th><th>프로모션</th><th>카드 할인</th><th>캐시백</th><th>총 렌탈료</th><th>총 혜택</th><th>실질 총비용</th><th>실질 월평균</th><th id="adminColHead" class="hidden">관리</th>
       </tr></thead><tbody id="rentalRows"></tbody></table></div>
       <div id="emptyState" class="empty">등록된 제품이 없습니다.</div>
     </section>
@@ -67,6 +80,14 @@
       <label>카드할인 적용개월<input id="discountMonths" type="number" min="0" /></label><label>캐시백<input id="cashback" type="number" min="0" value="0" /></label>
       <label>기타 혜택<input id="extraBenefit" type="number" min="0" value="0" /></label><label>케어주기(개월)<input id="careCycle" type="number" min="0" /></label>
       <label class="span-2">케어서비스<input id="careService" placeholder="예: 4개월 방문, UV살균, 탑퍼교체" /></label>
+      <section class="promo-editor span-2">
+        <div class="promo-head">
+          <div><strong>기간 프로모션</strong><span>구간을 추가하면 총 렌탈료에 자동 반영됩니다.</span></div>
+          <button id="addPromoBtn" type="button" class="btn small secondary">+ 프로모션 추가</button>
+        </div>
+        <div id="promoRows" class="promo-rows"></div>
+        <div class="promo-help">예: 1~12개월 50% 할인 → 시작 1 / 적용 12 / 할인율 50% · 1~10개월 월 10,000원 → 시작 1 / 적용 10 / 월 청구액 10,000원</div>
+      </section>
       <label class="span-2">공개 메모<textarea id="publicMemo" rows="2" placeholder="게스트에게 보여도 되는 메모"></textarea></label>
       <label class="span-2">관리자 전용 메모<textarea id="adminMemo" rows="3" placeholder="상담자 정보 등 외부에 공개하면 안 되는 내용"></textarea></label>
     </div>
