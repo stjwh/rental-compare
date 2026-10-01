@@ -21,10 +21,10 @@
   <main class="container">
     <section id="setupWarning" class="warning hidden"><strong>Supabase 연결 설정이 필요합니다.</strong><span><code>config.js</code>에 Project URL과 publishable key를 입력하세요.</span></section>
     <section class="summary-grid">
-      <article class="summary-card"><span>등록 제품</span><strong id="kpiCount">0개</strong></article>
-      <article class="summary-card"><span>최저 실질 월평균</span><strong id="kpiBestMonthly">-</strong></article>
-      <article class="summary-card"><span>최저 실질 총비용</span><strong id="kpiBestTotal">-</strong></article>
-      <article class="summary-card"><span>최대 총혜택</span><strong id="kpiBestBenefit">-</strong></article>
+      <article class="summary-card"><span>선택 제품</span><strong id="kpiCount">0개</strong></article>
+      <article class="summary-card"><span>선택 제품 중 최저 실질 월평균</span><strong id="kpiBestMonthly">-</strong></article>
+      <article class="summary-card"><span>선택 제품 중 최저 실질 총비용</span><strong id="kpiBestTotal">-</strong></article>
+      <article class="summary-card"><span>선택 제품 중 최대 총혜택</span><strong id="kpiBestBenefit">-</strong></article>
     </section>
     <section class="toolbar">
       <div class="filters">
@@ -37,11 +37,12 @@
     </section>
     <section class="table-card">
       <div class="table-scroll"><table><thead><tr>
+        <th class="compare-col"><label class="compare-head"><input id="selectAllVisible" type="checkbox" checked /><span>비교</span></label></th>
         <th>상태</th><th>구분</th><th>브랜드 / 제품명</th><th>월 렌탈료</th><th>기간</th><th>케어서비스</th><th>카드 할인</th><th>캐시백</th><th>총 렌탈료</th><th>총 혜택</th><th>실질 총비용</th><th>실질 월평균</th><th id="adminColHead" class="hidden">관리</th>
       </tr></thead><tbody id="rentalRows"></tbody></table></div>
       <div id="emptyState" class="empty">등록된 제품이 없습니다.</div>
     </section>
-    <section class="formula-note"><strong>계산 기준</strong><p>총 렌탈료 = 월 렌탈료 × 총 계약기간 + 등록/설치비 + 기타 초기비용</p><p>총 혜택 = 월 카드할인 × 할인 적용개월 + 캐시백 + 기타 혜택</p><p>실질 총비용 = 총 렌탈료 − 총 혜택 / 실질 월평균 = 실질 총비용 ÷ 총 계약기간</p></section>
+    <section class="formula-note"><strong>계산 기준</strong><p>상단 요약은 아래 목록에서 <strong>비교 체크한 제품만</strong> 기준으로 계산됩니다.</p><p>총 렌탈료 = 월 렌탈료 × 총 계약기간 + 등록/설치비 + 기타 초기비용</p><p>총 혜택 = 월 카드할인 × 할인 적용개월 + 캐시백 + 기타 혜택</p><p>실질 총비용 = 총 렌탈료 − 총 혜택 / 실질 월평균 = 실질 총비용 ÷ 총 계약기간</p></section>
   </main>
 
   <dialog id="loginDialog"><form id="loginForm" method="dialog" class="dialog-form">
