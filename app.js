@@ -12,7 +12,7 @@
     loginPassword:$("loginPassword"), loginError:$("loginError"), itemDialog:$("itemDialog"),
     itemForm:$("itemForm"), itemDialogTitle:$("itemDialogTitle"), itemError:$("itemError")
   };
-  let client=null, items=[], isAdmin=false;
+  let client=null, items=[], isAdmin=false;\n  const selectedIds=new Set();
   const money=n=>`${Math.round(Number(n)||0).toLocaleString("ko-KR")}원`;
   const num=id=>Math.max(0,Number($(id).value||0));
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -47,7 +47,11 @@
     const source=isAdmin?"rental_items":"rental_items_public";
     const {data,error}=await client.from(source).select("*").order("updated_at",{ascending:false});
     if(error){items=[];els.empty.textContent=`데이터를 불러오지 못했습니다: ${error.message}`;els.empty.classList.remove("hidden");return;}
-    items=data||[];render();
+    items=data||[];
+    const liveIds=new Set(items.map(x=>String(x.id)));
+    for(const id of [...selectedIds]) if(!liveIds.has(id)) selectedIds.delete(id);
+    if(selectedIds.size===0 && items.length) items.forEach(x=>selectedIds.add(String(x.id)));
+    render();
   }
 
   function filteredItems(){
@@ -72,7 +76,9 @@
     for(const x of arr){
       const adminNote=isAdmin&&x.admin_memo?`<div class="sub">🔒 ${esc(x.admin_memo)}</div>`:"";
       const tr=document.createElement("tr");
+      const checked=selectedIds.has(String(x.id))?"checked":"";
       tr.innerHTML=`
+        <td class="compare-col"><input class="compare-check" type="checkbox" data-id="${x.id}" ${checked} aria-label="${esc(x.brand)} ${esc(x.product_name)} 비교 선택" /></td>
         <td><span class="status ${esc(x.status||"")}">${esc(x.status||"관심")}</span></td>
         <td>${esc(x.category||"-")}</td>
         <td><div class="product">${esc(x.brand)} ${esc(x.product_name)}</div><div class="sub">${esc(x.size||"")}${x.public_memo?" · "+esc(x.public_memo):""}</div>${adminNote}</td>
@@ -85,10 +91,21 @@
         ${isAdmin?`<td><button class="btn small edit-btn" data-id="${x.id}">수정</button> <button class="btn small danger del-btn" data-id="${x.id}">삭제</button></td>`:""}
       `; els.rows.appendChild(tr);
     }
-    $("kpiCount").textContent=`${arr.length}개`;
-    $("kpiBestMonthly").textContent=arr.length?money(Math.min(...arr.map(x=>x.netMonthly))):"-";
-    $("kpiBestTotal").textContent=arr.length?money(Math.min(...arr.map(x=>x.netTotal))):"-";
-    $("kpiBestBenefit").textContent=arr.length?money(Math.max(...arr.map(x=>x.totalBenefit))):"-";
+    const selected=items.map(calc).filter(x=>selectedIds.has(String(x.id)));
+    $("kpiCount").textContent=`${selected.length}개`;
+    $("kpiBestMonthly").textContent=selected.length?money(Math.min(...selected.map(x=>x.netMonthly))):"-";
+    $("kpiBestTotal").textContent=selected.length?money(Math.min(...selected.map(x=>x.netTotal))):"-";
+    $("kpiBestBenefit").textContent=selected.length?money(Math.max(...selected.map(x=>x.totalBenefit))):"-";
+    const visibleIds=arr.map(x=>String(x.id));
+    const allVisible=visibleIds.length>0 && visibleIds.every(id=>selectedIds.has(id));
+    const someVisible=visibleIds.some(id=>selectedIds.has(id));
+    $("selectAllVisible").checked=allVisible;
+    $("selectAllVisible").indeterminate=!allVisible&&someVisible;
+    document.querySelectorAll(".compare-check").forEach(b=>b.addEventListener("change",()=>{
+      const id=String(b.dataset.id);
+      if(b.checked) selectedIds.add(id); else selectedIds.delete(id);
+      render();
+    }));
     document.querySelectorAll(".edit-btn").forEach(b=>b.addEventListener("click",()=>openEdit(b.dataset.id)));
     document.querySelectorAll(".del-btn").forEach(b=>b.addEventListener("click",()=>deleteItem(b.dataset.id)));
   }
@@ -129,6 +146,12 @@
   }
   async function logout(){if(client)await client.auth.signOut();setAdminMode(false);await loadItems();}
 
+  $("selectAllVisible").addEventListener("change",()=>{
+    const visible=filteredItems();
+    if($("selectAllVisible").checked) visible.forEach(x=>selectedIds.add(String(x.id)));
+    else visible.forEach(x=>selectedIds.delete(String(x.id)));
+    render();
+  });
   [els.filterCategory,els.filterStatus,els.sortBy].forEach(el=>el.addEventListener("change",render));
   els.searchText.addEventListener("input",render);els.adminLoginBtn.addEventListener("click",()=>els.loginDialog.showModal());
   els.logoutBtn.addEventListener("click",logout);els.addItemBtn.addEventListener("click",openNew);els.loginForm.addEventListener("submit",login);els.itemForm.addEventListener("submit",saveItem);
