@@ -23,6 +23,15 @@
     if(typeof raw==="string"){try{return JSON.parse(raw)||[];}catch(e){return [];}}
     return [];
   }
+  function normalizeCardPromos(raw){
+    if(Array.isArray(raw)) return raw;
+    if(typeof raw==="string"){try{return JSON.parse(raw)||[];}catch(e){return [];}}
+    return [];
+  }
+  function cardPromoLabel(p){
+    const end=Number(p.start_month)+Number(p.duration_months)-1;
+    return `${p.start_month}~${end}개월 +${money(p.extra_discount)}`;
+  }
   function promoMonthlyCharge(normal,month,promos){
     const p=promos.find(v=>month>=Number(v.start_month)&&month<Number(v.start_month)+Number(v.duration_months));
     if(!p) return normal;
@@ -45,11 +54,21 @@
     const promoSaving=Math.max(0,normalRent-billedRent);
     const totalRent=billedRent+Number(x.install_fee||0)+Number(x.initial_cost||0);
     const dm=Math.min(Number(x.discount_months||0),months);
-    const totalCard=Number(x.card_discount||0)*dm;
+    const baseCardDiscount=Number(x.card_discount||0);
+    const cardPromos=normalizeCardPromos(x.card_promotions);
+    let totalBaseCard=0, totalCardPromo=0;
+    for(let m=1;m<=months;m++){
+      if(m<=dm) totalBaseCard+=baseCardDiscount;
+      for(const cp of cardPromos){
+        const start=Number(cp.start_month||0), end=start+Number(cp.duration_months||0)-1;
+        if(m>=start && m<=end) totalCardPromo+=Number(cp.extra_discount||0);
+      }
+    }
+    const totalCard=totalBaseCard+totalCardPromo;
     const totalBenefit=promoSaving+totalCard+Number(x.cashback||0)+Number(x.extra_benefit||0);
     const netTotal=Math.max(0,totalRent-totalCard-Number(x.cashback||0)-Number(x.extra_benefit||0));
     const netMonthly=months>0?netTotal/months:0;
-    return {...x,promotions:promos,promoSaving,totalRent,totalCard,totalBenefit,netTotal,netMonthly};
+    return {...x,promotions:promos,card_promotions:cardPromos,promoSaving,totalRent,totalBaseCard,totalCardPromo,totalCard,totalBenefit,netTotal,netMonthly};
   };
 
   function setAdminMode(v){
@@ -111,7 +130,11 @@
         <td>${Number(x.contract_months||0)}개월<div class="sub">의무 ${Number(x.mandatory_months||0)}개월</div></td>
         <td>${esc(x.care_service||"-")}<div class="sub">${x.care_cycle?`${x.care_cycle}개월 주기`:""}</div></td>
         <td>${x.promotions.length ? x.promotions.map(p=>`<div class="promo-chip">${esc(promoLabel(p))}</div>`).join("") : "-"}<div class="sub">${x.promoSaving? `절감 ${money(x.promoSaving)}` : ""}</div></td>
-        <td class="num">${money(x.totalCard)}<div class="sub">${esc(x.card_name||"")}</div></td>
+        <td class="num">${money(x.totalCard)}
+          <div class="sub">${esc(x.card_name||"")}${x.totalBaseCard? ` · 기본 ${money(x.totalBaseCard)}` : ""}</div>
+          ${x.card_promotions.length ? x.card_promotions.map(p=>`<div class="card-promo-chip">${esc(cardPromoLabel(p))}</div>`).join("") : ""}
+          ${x.totalCardPromo ? `<div class="sub">추가 할인 ${money(x.totalCardPromo)}</div>` : ""}
+        </td>
         <td class="num">${money(x.cashback)}</td><td class="num">${money(x.totalRent)}</td><td class="num">${money(x.totalBenefit)}</td>
         <td class="num"><strong>${money(x.netTotal)}</strong></td><td class="num"><strong>${money(x.netMonthly)}</strong></td>
         ${isAdmin?`<td><button class="btn small edit-btn" data-id="${x.id}">수정</button> <button class="btn small danger del-btn" data-id="${x.id}">삭제</button></td>`:""}
@@ -169,8 +192,33 @@
     }
     return "";
   }
+  function addCardPromoRow(p={start_month:1,duration_months:36,extra_discount:10000}){
+    const row=document.createElement("div"); row.className="promo-row card-promo-row";
+    row.innerHTML=`
+      <label>시작월<input class="card-promo-start" type="number" min="1" value="${Number(p.start_month||1)}"></label>
+      <label>적용개월<input class="card-promo-duration" type="number" min="1" value="${Number(p.duration_months||1)}"></label>
+      <label class="card-extra-label">추가 월 할인액<input class="card-promo-extra" type="number" min="0" value="${Number(p.extra_discount||0)}"></label>
+      <button type="button" class="btn small danger card-promo-remove">삭제</button>`;
+    row.querySelector(".card-promo-remove").addEventListener("click",()=>row.remove());
+    $("cardPromoRows").appendChild(row);
+  }
+  function readCardPromos(){
+    return [...document.querySelectorAll(".card-promo-row")].map(row=>({
+      start_month:Number(row.querySelector(".card-promo-start").value||0),
+      duration_months:Number(row.querySelector(".card-promo-duration").value||0),
+      extra_discount:Number(row.querySelector(".card-promo-extra").value||0)
+    }));
+  }
+  function validateCardPromos(promos,contractMonths){
+    for(const p of promos){
+      if(p.start_month<1||p.duration_months<1) return "카드 프로모션 시작월과 적용개월을 확인하세요.";
+      if(p.start_month>contractMonths) return "카드 프로모션 시작월이 총 계약기간을 넘습니다.";
+      if(p.extra_discount<0) return "추가 카드 할인액은 0원 이상이어야 합니다.";
+    }
+    return "";
+  }
   function openNew(){
-    els.itemForm.reset();$("itemId").value="";$("status").value="관심";$("promoRows").innerHTML="";
+    els.itemForm.reset();$("itemId").value="";$("status").value="관심";$("promoRows").innerHTML="";$("cardPromoRows").innerHTML="";
     ["installFee","initialCost","cardDiscount","cashback","extraBenefit"].forEach(id=>$(id).value=0);
     els.itemDialogTitle.textContent="제품 추가";els.itemError.textContent="";els.itemDialog.showModal();
   }
@@ -183,19 +231,22 @@
     Object.entries(vals).forEach(([k,v])=>$(k).value=v);
     $("promoRows").innerHTML="";
     normalizePromos(x.promotions).forEach(addPromoRow);
+    $("cardPromoRows").innerHTML="";
+    normalizeCardPromos(x.card_promotions).forEach(addCardPromoRow);
     els.itemDialogTitle.textContent="제품 수정";els.itemError.textContent="";els.itemDialog.showModal();
   }
   function payload(){return{
     category:$("category").value,status:$("status").value,brand:$("brand").value.trim(),product_name:$("productName").value.trim(),size:$("size").value.trim(),
     monthly_rent:num("monthlyRent"),mandatory_months:num("mandatoryMonths"),contract_months:num("contractMonths"),install_fee:num("installFee"),initial_cost:num("initialCost"),
     card_name:$("cardName").value.trim(),card_discount:num("cardDiscount"),discount_months:num("discountMonths"),cashback:num("cashback"),extra_benefit:num("extraBenefit"),
-    care_service:$("careService").value.trim(),care_cycle:num("careCycle"),promotions:readPromos(),public_memo:$("publicMemo").value.trim(),admin_memo:$("adminMemo").value.trim()
+    care_service:$("careService").value.trim(),care_cycle:num("careCycle"),promotions:readPromos(),card_promotions:readCardPromos(),public_memo:$("publicMemo").value.trim(),admin_memo:$("adminMemo").value.trim()
   };}
 
   async function saveItem(e){
     e.preventDefault();if(!isAdmin)return;
     const id=$("itemId").value,p=payload();if(!p.brand||!p.product_name||p.contract_months<1){els.itemError.textContent="브랜드, 제품명, 총 계약기간을 확인하세요.";return;}
     const promoError=validatePromos(p.promotions,p.contract_months);if(promoError){els.itemError.textContent=promoError;return;}
+    const cardPromoError=validateCardPromos(p.card_promotions,p.contract_months);if(cardPromoError){els.itemError.textContent=cardPromoError;return;}
     const r=id?await client.from("rental_items").update(p).eq("id",id):await client.from("rental_items").insert(p);
     if(r.error){els.itemError.textContent=r.error.message;return;}els.itemDialog.close();await loadItems();
   }
@@ -210,6 +261,7 @@
   async function logout(){if(client)await client.auth.signOut();setAdminMode(false);await loadItems();}
 
   $("addPromoBtn").addEventListener("click",()=>addPromoRow());
+  $("addCardPromoBtn").addEventListener("click",()=>addCardPromoRow());
   $("selectAllVisible").addEventListener("change",()=>{
     const visible=filteredItems();
     if($("selectAllVisible").checked) visible.forEach(x=>selectedIds.add(String(x.id)));
