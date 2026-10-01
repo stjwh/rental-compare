@@ -43,12 +43,11 @@
     for(let m=1;m<=months;m++) billedRent+=promoMonthlyCharge(normal,m,promos);
     const normalRent=normal*months;
     const promoSaving=Math.max(0,normalRent-billedRent);
-    const totalRent=billedRent+Number(x.install_fee||0)+Number(x.initial_cost||0);
+    const totalRent=normalRent+Number(x.install_fee||0)+Number(x.initial_cost||0);
     const dm=Math.min(Number(x.discount_months||0),months);
     const totalCard=Number(x.card_discount||0)*dm;
     const totalBenefit=promoSaving+totalCard+Number(x.cashback||0)+Number(x.extra_benefit||0);
-    const normalTotal=normalRent+Number(x.install_fee||0)+Number(x.initial_cost||0);
-    const netTotal=Math.max(0,normalTotal-totalBenefit);
+    const netTotal=Math.max(0,totalRent-totalBenefit);
     const netMonthly=months>0?netTotal/months:0;
     return {...x,promotions:promos,promoSaving,totalRent,totalCard,totalBenefit,netTotal,netMonthly};
   };
