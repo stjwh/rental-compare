@@ -137,7 +137,7 @@
         </td>
         <td class="num">${money(x.cashback)}</td><td class="num">${money(x.totalRent)}</td><td class="num">${money(x.totalBenefit)}</td>
         <td class="num"><strong>${money(x.netTotal)}</strong></td><td class="num"><strong>${money(x.netMonthly)}</strong></td>
-        ${isAdmin?`<td><button class="btn small edit-btn" data-id="${x.id}">수정</button> <button class="btn small danger del-btn" data-id="${x.id}">삭제</button></td>`:""}
+        ${isAdmin?`<td><button class="btn small copy-btn" data-id="${x.id}">복사</button> <button class="btn small edit-btn" data-id="${x.id}">수정</button> <button class="btn small danger del-btn" data-id="${x.id}">삭제</button></td>`:""}
       `; els.rows.appendChild(tr);
     }
     const selected=items.map(calc).filter(x=>selectedIds.has(String(x.id)));
@@ -155,6 +155,7 @@
       if(b.checked) selectedIds.add(id); else selectedIds.delete(id);
       render();
     }));
+    document.querySelectorAll(".copy-btn").forEach(b=>b.addEventListener("click",()=>openCopy(b.dataset.id)));
     document.querySelectorAll(".edit-btn").forEach(b=>b.addEventListener("click",()=>openEdit(b.dataset.id)));
     document.querySelectorAll(".del-btn").forEach(b=>b.addEventListener("click",()=>deleteItem(b.dataset.id)));
   }
@@ -222,18 +223,49 @@
     ["installFee","initialCost","cardDiscount","cashback","extraBenefit"].forEach(id=>$(id).value=0);
     els.itemDialogTitle.textContent="제품 추가";els.itemError.textContent="";els.itemDialog.showModal();
   }
-  function openEdit(id){
-    const x=items.find(v=>String(v.id)===String(id));if(!x)return;
-    const vals={itemId:x.id,category:x.category||"기타",status:x.status||"관심",brand:x.brand||"",productName:x.product_name||"",size:x.size||"",
-      monthlyRent:x.monthly_rent||0,mandatoryMonths:x.mandatory_months||0,contractMonths:x.contract_months||60,installFee:x.install_fee||0,initialCost:x.initial_cost||0,
-      cardName:x.card_name||"",cardDiscount:x.card_discount||0,discountMonths:x.discount_months||0,cashback:x.cashback||0,extraBenefit:x.extra_benefit||0,
-      careCycle:x.care_cycle||0,careService:x.care_service||"",publicMemo:x.public_memo||"",adminMemo:x.admin_memo||""};
+  function populateItemForm(x,{copyMode=false}={}){
+    const vals={
+      itemId:copyMode?"":x.id,
+      category:x.category||"기타",
+      status:copyMode?"관심":(x.status||"관심"),
+      brand:x.brand||"",
+      productName:copyMode?((x.product_name||"")+" 복사본"):(x.product_name||""),
+      size:x.size||"",
+      monthlyRent:x.monthly_rent||0,
+      mandatoryMonths:x.mandatory_months||0,
+      contractMonths:x.contract_months||60,
+      installFee:x.install_fee||0,
+      initialCost:x.initial_cost||0,
+      cardName:x.card_name||"",
+      cardDiscount:x.card_discount||0,
+      discountMonths:x.discount_months||0,
+      cashback:x.cashback||0,
+      extraBenefit:x.extra_benefit||0,
+      careCycle:x.care_cycle||0,
+      careService:x.care_service||"",
+      publicMemo:x.public_memo||"",
+      adminMemo:x.admin_memo||""
+    };
     Object.entries(vals).forEach(([k,v])=>$(k).value=v);
     $("promoRows").innerHTML="";
-    normalizePromos(x.promotions).forEach(addPromoRow);
+    normalizePromos(x.promotions).forEach(p=>addPromoRow({...p}));
     $("cardPromoRows").innerHTML="";
-    normalizeCardPromos(x.card_promotions).forEach(addCardPromoRow);
-    els.itemDialogTitle.textContent="제품 수정";els.itemError.textContent="";els.itemDialog.showModal();
+    normalizeCardPromos(x.card_promotions).forEach(p=>addCardPromoRow({...p}));
+    els.itemError.textContent="";
+  }
+
+  function openCopy(id){
+    const x=items.find(v=>String(v.id)===String(id));if(!x)return;
+    populateItemForm(x,{copyMode:true});
+    els.itemDialogTitle.textContent="제품 복사 후 추가";
+    els.itemDialog.showModal();
+  }
+
+  function openEdit(id){
+    const x=items.find(v=>String(v.id)===String(id));if(!x)return;
+    populateItemForm(x,{copyMode:false});
+    els.itemDialogTitle.textContent="제품 수정";
+    els.itemDialog.showModal();
   }
   function payload(){return{
     category:$("category").value,status:$("status").value,brand:$("brand").value.trim(),product_name:$("productName").value.trim(),size:$("size").value.trim(),
