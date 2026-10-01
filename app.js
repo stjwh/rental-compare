@@ -12,7 +12,8 @@
     loginPassword:$("loginPassword"), loginError:$("loginError"), itemDialog:$("itemDialog"),
     itemForm:$("itemForm"), itemDialogTitle:$("itemDialogTitle"), itemError:$("itemError")
   };
-  let client=null, items=[], isAdmin=false;\n  const selectedIds=new Set();
+  let client=null, items=[], isAdmin=false;
+  const selectedIds=new Set();
   const money=n=>`${Math.round(Number(n)||0).toLocaleString("ko-KR")}원`;
   const num=id=>Math.max(0,Number($(id).value||0));
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
