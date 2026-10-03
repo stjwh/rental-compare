@@ -142,9 +142,25 @@
     }
     const selected=items.map(calc).filter(x=>selectedIds.has(String(x.id)));
     $("kpiCount").textContent=`${selected.length}개`;
-    $("kpiBestMonthly").textContent=selected.length?money(Math.min(...selected.map(x=>x.netMonthly))):"-";
-    $("kpiBestTotal").textContent=selected.length?money(Math.min(...selected.map(x=>x.netTotal))):"-";
-    $("kpiBestBenefit").textContent=selected.length?money(Math.max(...selected.map(x=>x.totalBenefit))):"-";
+    if(selected.length){
+      const monthlyRentSum=selected.reduce((s,x)=>s+Number(x.monthly_rent||0),0);
+      const monthlyCardSum=selected.reduce((s,x)=>{
+        const months=Number(x.contract_months||0);
+        return s+(months>0?Number(x.totalCard||0)/months:0);
+      },0);
+      const monthlyNetSum=selected.reduce((s,x)=>s+Number(x.netMonthly||0),0);
+      const totalRentSum=selected.reduce((s,x)=>s+Number(x.totalRent||0),0);
+      const totalCardSum=selected.reduce((s,x)=>s+Number(x.totalCard||0),0);
+      const totalNetSum=selected.reduce((s,x)=>s+Number(x.netTotal||0),0);
+      $("kpiMonthlyRent").textContent=money(monthlyRentSum);
+      $("kpiMonthlyCard").textContent=money(monthlyCardSum);
+      $("kpiMonthlyNet").textContent=money(monthlyNetSum);
+      $("kpiTotalRent").textContent=money(totalRentSum);
+      $("kpiTotalCard").textContent=money(totalCardSum);
+      $("kpiTotalNet").textContent=money(totalNetSum);
+    }else{
+      ["kpiMonthlyRent","kpiMonthlyCard","kpiMonthlyNet","kpiTotalRent","kpiTotalCard","kpiTotalNet"].forEach(id=>$(id).textContent="-");
+    }
     const visibleIds=arr.map(x=>String(x.id));
     const allVisible=visibleIds.length>0 && visibleIds.every(id=>selectedIds.has(id));
     const someVisible=visibleIds.some(id=>selectedIds.has(id));
